@@ -1,4 +1,4 @@
 Flask==3.0.3
 Werkzeug==3.0.2
 fpdf==1.7.2
-Pillow==10.3.0
+Pillow-SIMD==9.0.0.post1
