@@ -2,25 +2,31 @@ import os
 from flask import Flask, render_template, request, send_file
 from fpdf import FPDF
 from werkzeug.utils import secure_filename
+from PIL import Image
 
 app = Flask(__name__)
 
-# Folder paths
 UPLOAD_FOLDER = "uploads"
 GENERATED_FOLDER = "generated"
-
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["GENERATED_FOLDER"] = GENERATED_FOLDER
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(GENERATED_FOLDER, exist_ok=True)
 
-ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "heic", "heif"}
 
 
 def allowed_file(filename):
-    return "." in filename and \
-        filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def convert_to_jpg(input_path):
+    """Converts PNG/HEIC/WEBP etc. to actual JPG file for FPDF."""
+    img = Image.open(input_path).convert("RGB")
+    output_path = input_path.rsplit(".", 1)[0] + "_converted.jpg"
+    img.save(output_path, "JPEG", quality=95)
+    return output_path
 
 
 @app.route("/", methods=["GET"])
@@ -32,21 +38,23 @@ def index():
 def generate_pdf():
     files = request.files.getlist("photos")
 
-    if not files or len(files) == 0:
-        return "No files uploaded!"
+    if not files:
+        return "No files selected!"
 
-    image_paths = []
+    processed_images = []
 
-    # Save files
     for file in files:
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            filepath = os.path.join(UPLOAD_FOLDER, filename)
-            file.save(filepath)
-            image_paths.append(filepath)
+            fp = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(fp)
 
-    # Create PDF
-    pdf = FPDF(orientation='P', unit='mm', format='A4')
+            # Convert to safe JPG
+            final_image = convert_to_jpg(fp)
+            processed_images.append(final_image)
+
+    # Generate PDF
+    pdf = FPDF("P", "mm", "A4")
     pdf.add_page()
 
     img_w = 30
@@ -55,10 +63,9 @@ def generate_pdf():
     gap_y = 5
     margin_left = 10
     margin_top = 10
-
     current_y = margin_top
 
-    for img in image_paths:
+    for img in processed_images:
         current_x = margin_left
 
         for _ in range(6):
@@ -74,7 +81,5 @@ def generate_pdf():
 
 
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-
