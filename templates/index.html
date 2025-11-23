@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Passport Photo PDF Generator</title>
+</head>
+<body>
+    <h2>Upload 1–5 Images to Generate Passport Photo PDF</h2>
+
+    <form action="/generate" method="POST" enctype="multipart/form-data">
+        <label>Select photos (PNG/JPG):</label><br><br>
+        <input type="file" name="photos" multiple accept="image/*"><br><br>
+
+        <button type="submit">Generate PDF</button>
+    </form>
+</body>
+</html>
